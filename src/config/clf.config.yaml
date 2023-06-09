@@ -1,26 +1,23 @@
 classification:
-  Model1: 
+  Model1:
+    conv_hidden_dim: 512
+    dr_rate: 30
     feature_dim: 812
     num_layer: 3
-    conv_hidden_dim: 512
     out_din: 115
-    dr_rate: 30
-
-  Model2: 
-    feature_dim: 512
+  Model2:
     conv_hidden_dim: 512
-    out_dim: 5
     dr_rate: 30
-
-  Model3: 
     feature_dim: 512
+    out_dim: 1
+  Model3:
     conv_hidden_dim: 512
+    dr_rate: 30
+    feature_dim: 512
     out_dim: 115
-    dr_rate: 30
-
   Model4:
     Nframe: 256
-    feature_dim: 768
     conv_hidden_dim: 256
-    out_dim: 115
     dr_rate: 50
+    feature_dim: 768
+    out_dim: 115

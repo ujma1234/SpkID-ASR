@@ -1,7 +1,20 @@
 from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
 import torch
-processor = Wav2Vec2Processor.from_pretrained("src/ckpt/")
-model = Wav2Vec2ForCTC.from_pretrained("src/ckpt/")
+import os
+
+# 현재 스크립트 파일의 절대 경로를 얻음
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+# 상위 디렉토리 얻기
+parent_directory = os.path.dirname(script_directory)
+
+# 경로를 상대 경로로 구성
+ckpt_directory = os.path.join(parent_directory, "src/ckpt/")
+
+# 모델과 프로세서 로드
+processor = Wav2Vec2Processor.from_pretrained(ckpt_directory)
+model = Wav2Vec2ForCTC.from_pretrained(ckpt_directory)
+
 
 class FeatureExtract(torch.nn.Module):
     def __init__(self):
@@ -12,6 +25,7 @@ class FeatureExtract(torch.nn.Module):
         x = self.model(x)
         x = x.transpose(-1, -2)
         return x
+
 
 class Transcript(torch.nn.Module):
     def __init__(self):

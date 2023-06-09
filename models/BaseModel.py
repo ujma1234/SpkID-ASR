@@ -1,11 +1,22 @@
 import importlib
 import torch
 import os
-from utils.config_utils import load_config, convert_to_int
+from server.Wav2vec_model.utils.config_utils import load_config, convert_to_int
+# from utils.config_utils import load_config, convert_to_int
 from torch import nn
 from tqdm import tqdm
 
-device = "cuda:0" if torch.cuda.is_available else "cpu"
+# 현재 스크립트 파일의 절대 경로를 얻음
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+# 상위 디렉토리 얻기
+parent_directory = os.path.dirname(script_directory)
+
+# 경로를 상대 경로로 구성
+config_path = os.path.join(parent_directory, 'src/models')
+
+device = "cpu"
+
 
 class BaseModel:
     def __init__(self, config_path, module_name, model_name):
@@ -13,17 +24,18 @@ class BaseModel:
         self.module_name = module_name
         self.model_name = model_name
 
-        model_module = importlib.import_module(f"models.{module_name}")
+        model_module = importlib.import_module(
+            f"server.Wav2vec_model.models.{module_name}")
         model_class = getattr(model_module, model_name)
 
         self.config = convert_to_int(self.config[module_name][model_name])
 
         self.model = model_class(*self.config).to(device)
-    
+
     def load_ckpt(self, checkpoint_path):
         ckpt = torch.load(checkpoint_path)
         self.model.load_state_dict(ckpt["model_state_dict"])
-    
+
     def fit(self, train_loader, lr=0.0001, epoch_num=10, save_path=None):
         if save_path is None:
             raise "save path is None"
@@ -38,7 +50,7 @@ class BaseModel:
         tqdm_size = 60
         max_loss = 50000
 
-        def calc_accuracy(X,Y):
+        def calc_accuracy(X, Y):
             _, index = torch.max(X, 1)
             train_acc = (index == Y).sum().data.cpu().numpy()/index.size()[0]
             return train_acc
@@ -47,9 +59,9 @@ class BaseModel:
             self.model.train()
             train_acc = 0.0
             total_loss = 0
-            for _, (x, labels) in enumerate(tqdm(train_loader, total = len(train_loader), ncols=tqdm_size)):
+            for _, (x, labels) in enumerate(tqdm(train_loader, total=len(train_loader), ncols=tqdm_size)):
                 optimizer.zero_grad()
-                
+
                 x = x.to(device)
                 logits = self.model(x).to(device)
                 labels = labels.to(device)
@@ -65,23 +77,21 @@ class BaseModel:
                 total_loss += loss.item()
 
             epoch_loss = total_loss / len(train_loader)
-            
+
             if epoch_loss < max_loss:
                 print(epoch_loss, train_acc/len(train_loader))
                 torch.save(
                     {
-                        "model":"Simple_classification",
-                        "epoch":epoch,
-                        "model_state_dict":self.model.state_dict(),
-                        "optimizer_state_dict":optimizer.state_dict(),
-                        "description":f"Simple_classification",
+                        "model": "Simple_classification",
+                        "epoch": epoch,
+                        "model_state_dict": self.model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "description": f"Simple_classification",
                     },
                     f"{save_path}/{self.module_name}-{self.model_name}.pt",
                 )
                 max_loss = epoch_loss
-                
-            
-                
+
     def predict(self, input):
         input = input.to(device)
         softmax = torch.nn.Softmax(dim=-1)
@@ -91,6 +101,6 @@ class BaseModel:
             logits = softmax(logits)
             p, index = torch.max(logits, 1)
             for num in range(p.size()[0]):
-                print(f'가장 높은 확률: {int(p[num] * 100)}%, 예측 정답: {int(index[num])}')
+                print(
+                    f'가장 높은 확률: {int(p[num] * 100)}%, 예측 정답: {int(index[num])}')
         return p, index
-        
